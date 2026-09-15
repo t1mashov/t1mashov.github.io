@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["L82N5LC7FQ.com.helpdeskeddy"],
+        "components": [
+          {
+            "/": "/t/*"
+          }
+        ]
+      }
+    ]
+  }
+}
