@@ -88,7 +88,8 @@
         return;
       }
 
-      log("Токен получен, скопируйте для теста:\n\n" + token);
+      log("Токен получен, возвращаемся в приложение...");
+      window.location.href = "helpdeskeddy://webpush-token?value=" + encodeURIComponent(token);
     } catch (e) {
       log("Ошибка: " + (e && e.message ? e.message : String(e)));
       console.error(e);
