@@ -1,5 +1,6 @@
 importScripts("https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging-compat.js");
+importScripts("debug-store.js");
 
 firebase.initializeApp({
   apiKey: "AIzaSyA3MVD9ief0JprMRC3Atbd7dPt1gmH4SKU",
@@ -17,6 +18,7 @@ const messaging = firebase.messaging();
 // сюда же будет уходить {title, body, url} из HDE.
 messaging.onBackgroundMessage((payload) => {
   console.log("[sw] Background message payload:", JSON.stringify(payload));
+  debugStoreSet("lastPayload", { payload, receivedAt: new Date().toISOString() });
 
   const data = payload.data || {};
   const notif = payload.notification || {};
@@ -39,6 +41,7 @@ self.addEventListener("notificationclick", (event) => {
   const url = (event.notification.data && event.notification.data.url) || "/";
   event.waitUntil(
     (async () => {
+      await debugStoreSet("lastClick", { data: event.notification.data, clickedAt: new Date().toISOString() });
       const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       for (const client of allClients) {
         if ("focus" in client) {

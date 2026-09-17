@@ -24,6 +24,25 @@
 <button id="enableBtn">Включить уведомления</button>
 <div id="status">Готово к запуску теста.</div>
 
+<h3>Последний пуш (debug)</h3>
+<button id="refreshDebugBtn">Обновить</button>
+<div id="debugOutput" style="margin-top: 16px; padding: 12px; border-radius: 8px; background: #f2f2f7; font-size: 13px; white-space: pre-wrap; word-break: break-all;">Ещё не приходило.</div>
+
+<script src="debug-store.js"></script>
+<script>
+  async function renderDebugInfo() {
+    const [lastPayload, lastClick] = await Promise.all([
+      debugStoreGet("lastPayload"),
+      debugStoreGet("lastClick")
+    ]);
+    const el = document.getElementById("debugOutput");
+    el.textContent = JSON.stringify({ lastPayload, lastClick }, null, 2);
+  }
+
+  document.getElementById("refreshDebugBtn").addEventListener("click", renderDebugInfo);
+  renderDebugInfo();
+</script>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
   import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging.js";
