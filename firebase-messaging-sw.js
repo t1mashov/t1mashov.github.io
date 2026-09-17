@@ -16,6 +16,8 @@ const messaging = firebase.messaging();
 // Пока просто показываем то, что пришло в data/notification — на проде
 // сюда же будет уходить {title, body, url} из HDE.
 messaging.onBackgroundMessage((payload) => {
+  console.log("[sw] Background message payload:", JSON.stringify(payload));
+
   const data = payload.data || {};
   const notif = payload.notification || {};
 
@@ -31,6 +33,8 @@ messaging.onBackgroundMessage((payload) => {
 });
 
 self.addEventListener("notificationclick", (event) => {
+  console.log("[sw] notificationclick data:", JSON.stringify(event.notification.data));
+
   event.notification.close();
   const url = (event.notification.data && event.notification.data.url) || "/";
   event.waitUntil(
