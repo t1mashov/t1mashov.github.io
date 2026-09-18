@@ -13,9 +13,8 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Срабатывает, когда пуш прилетает, а страница/приложение не в фокусе.
-// Пока просто показываем то, что пришло в data/notification — на проде
-// сюда же будет уходить {title, body, url} из HDE.
+// HDE кладёт путь к тикету в data.pushUrl (относительный путь на домене самого бокса,
+// например "/ru/ticket/list/filter/id/0/ticket/13"), а не в data.url.
 messaging.onBackgroundMessage((payload) => {
   console.log("[sw] Background message payload:", JSON.stringify(payload));
 
@@ -24,13 +23,13 @@ messaging.onBackgroundMessage((payload) => {
 
   const title = notif.title || data.title || "Новое уведомление";
   const body = notif.body || data.body || "";
-  const url = data.url || "/";
+  const pushUrl = data.pushUrl || "/";
 
   return debugStoreSet("lastPayload", { payload, receivedAt: new Date().toISOString() }).then(() =>
     self.registration.showNotification(title, {
       body,
       icon: "icon-192.png",
-      data: { url }
+      data: { pushUrl }
     })
   );
 });
@@ -39,19 +38,22 @@ self.addEventListener("notificationclick", (event) => {
   console.log("[sw] notificationclick data:", JSON.stringify(event.notification.data));
 
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || "/";
+  const pushUrl = (event.notification.data && event.notification.data.pushUrl) || "/";
+  // pushUrl — относительный путь на домене бокса, а не на t1mashov.github.io, поэтому
+  // Universal Link открыть его напрямую не может. Заворачиваем в /t/?path=... — этот
+  // путь зарегистрирован в apple-app-site-association, и приложение достанет
+  // настоящий путь из query-параметра (см. AppDelegate.application(continue:)).
+  const universalLink = "https://t1mashov.github.io/t/?path=" + encodeURIComponent(pushUrl);
   event.waitUntil(
     (async () => {
-      await debugStoreSet("lastClick", { data: event.notification.data, clickedAt: new Date().toISOString() });
+      await debugStoreSet("lastClick", { data: event.notification.data, universalLink, clickedAt: new Date().toISOString() });
       const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       for (const client of allClients) {
         if ("focus" in client) {
           await client.focus();
         }
       }
-      // На этом тестовом этапе просто открываем URL как есть.
-      // На проде тут будет полный https-адрес на домен Universal Link.
-      await self.clients.openWindow(url);
+      await self.clients.openWindow(universalLink);
     })()
   );
 });
