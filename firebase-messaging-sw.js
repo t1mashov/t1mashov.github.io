@@ -47,12 +47,20 @@ self.addEventListener("notificationclick", (event) => {
     (async () => {
       await debugStoreSet("lastClick", { data: event.notification.data, redirectUrl, clickedAt: new Date().toISOString() });
       const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-      for (const client of allClients) {
-        if ("focus" in client) {
-          await client.focus();
+      // Standalone PWA на iOS допускает только одно окно: если оно уже открыто
+      // (просто свёрнуто, не закрыто), openWindow() с новым URL ничего не делает —
+      // нужно явно навигировать существующий клиент, иначе редирект-скрипт на
+      // странице не перезапустится и клик по второму подряд уведомлению просто
+      // покажет старую страницу PWA без перехода в приложение.
+      if (allClients.length > 0) {
+        const client = allClients[0];
+        if ("navigate" in client) {
+          await client.navigate(redirectUrl);
         }
+        await client.focus();
+      } else {
+        await self.clients.openWindow(redirectUrl);
       }
-      await self.clients.openWindow(redirectUrl);
     })()
   );
 });
