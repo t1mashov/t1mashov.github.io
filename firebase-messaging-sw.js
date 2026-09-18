@@ -18,7 +18,6 @@ const messaging = firebase.messaging();
 // сюда же будет уходить {title, body, url} из HDE.
 messaging.onBackgroundMessage((payload) => {
   console.log("[sw] Background message payload:", JSON.stringify(payload));
-  debugStoreSet("lastPayload", { payload, receivedAt: new Date().toISOString() });
 
   const data = payload.data || {};
   const notif = payload.notification || {};
@@ -27,11 +26,13 @@ messaging.onBackgroundMessage((payload) => {
   const body = notif.body || data.body || "";
   const url = data.url || "/";
 
-  self.registration.showNotification(title, {
-    body,
-    icon: "icon-192.png",
-    data: { url }
-  });
+  return debugStoreSet("lastPayload", { payload, receivedAt: new Date().toISOString() }).then(() =>
+    self.registration.showNotification(title, {
+      body,
+      icon: "icon-192.png",
+      data: { url }
+    })
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
