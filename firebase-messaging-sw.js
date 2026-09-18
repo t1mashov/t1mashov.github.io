@@ -1,22 +1,17 @@
-importScripts("https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging-compat.js");
 importScripts("debug-store.js");
 
-firebase.initializeApp({
-  apiKey: "AIzaSyA3MVD9ief0JprMRC3Atbd7dPt1gmH4SKU",
-  authDomain: "hdepush.firebaseapp.com",
-  projectId: "hdepush",
-  storageBucket: "hdepush.firebasestorage.app",
-  messagingSenderId: "647887531816",
-  appId: "1:647887531816:web:795292b474ff5e66a46a1d"
-});
-
-const messaging = firebase.messaging();
-
+// Сознательно НЕ используем firebase-messaging-compat.js здесь: у него в некоторых
+// версиях сообщение с одновременно заполненными notification и data (а HDE шлёт
+// именно так) показывается ДВАЖДЫ — один раз автоматически самим SDK по полю
+// notification (без наших данных, поэтому клик по нему просто открывал сайт), и
+// второй раз вручную нашим кодом ниже (с корректным data.pushUrl). Сырой Push API
+// даёт полный контроль и не имеет такого автоматического поведения.
+//
 // HDE кладёт путь к тикету в data.pushUrl (относительный путь на домене самого бокса,
 // например "/ru/ticket/list/filter/id/0/ticket/13"), а не в data.url.
-messaging.onBackgroundMessage((payload) => {
-  console.log("[sw] Background message payload:", JSON.stringify(payload));
+self.addEventListener("push", (event) => {
+  const payload = event.data ? event.data.json() : {};
+  console.log("[sw] push event payload:", JSON.stringify(payload));
 
   const data = payload.data || {};
   const notif = payload.notification || {};
@@ -25,12 +20,14 @@ messaging.onBackgroundMessage((payload) => {
   const body = notif.body || data.body || "";
   const pushUrl = data.pushUrl || "/";
 
-  return debugStoreSet("lastPayload", { payload, receivedAt: new Date().toISOString() }).then(() =>
-    self.registration.showNotification(title, {
-      body,
-      icon: "icon-192.png",
-      data: { pushUrl }
-    })
+  event.waitUntil(
+    debugStoreSet("lastPayload", { payload, receivedAt: new Date().toISOString() }).then(() =>
+      self.registration.showNotification(title, {
+        body,
+        icon: "icon-192.png",
+        data: { pushUrl }
+      })
+    )
   );
 });
 
