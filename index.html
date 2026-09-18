@@ -24,6 +24,19 @@
 <button id="enableBtn">Включить уведомления</button>
 <div id="status">Готово к запуску теста.</div>
 
+<script>
+  // Клик по пуш-уведомлению открывает эту страницу с ?redirect=<путь> (см.
+  // firebase-messaging-sw.js). Тут же, из реально загруженной страницы (а не из
+  // service worker), уходим на кастомную схему — так iOS надёжно передаёт
+  // управление приложению.
+  (function () {
+    const redirect = new URLSearchParams(window.location.search).get("redirect");
+    if (redirect) {
+      window.location.href = "helpdeskeddy://open?path=" + encodeURIComponent(redirect);
+    }
+  })();
+</script>
+
 <h3>Последний пуш (debug)</h3>
 <button id="refreshDebugBtn">Обновить</button>
 <div id="debugOutput" style="margin-top: 16px; padding: 12px; border-radius: 8px; background: #f2f2f7; font-size: 13px; white-space: pre-wrap; word-break: break-all;">Ещё не приходило.</div>

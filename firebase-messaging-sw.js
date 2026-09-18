@@ -39,21 +39,23 @@ self.addEventListener("notificationclick", (event) => {
 
   event.notification.close();
   const pushUrl = (event.notification.data && event.notification.data.pushUrl) || "/";
-  // pushUrl — относительный путь на домене бокса, а не на t1mashov.github.io, поэтому
-  // Universal Link открыть его напрямую не может. Заворачиваем в /t/?path=... — этот
-  // путь зарегистрирован в apple-app-site-association, и приложение достанет
-  // настоящий путь из query-параметра (см. AppDelegate.application(continue:)).
-  const universalLink = "https://t1mashov.github.io/t/?path=" + encodeURIComponent(pushUrl);
+  // Universal Link (openWindow на t1mashov.github.io из воркера ЭТОГО ЖЕ домена) не
+  // передаёт управление приложению — iOS считает это внутренней навигацией PWA, а не
+  // переходом "снаружи". Вместо этого открываем свою же страницу с параметром redirect,
+  // а она уже сама (из живой загруженной страницы, не из воркера) уходит на кастомную
+  // схему helpdeskeddy://open?path=... — так же надёжно, как уже работает передача
+  // webpush-токена обратно в приложение.
+  const redirectUrl = "https://t1mashov.github.io/?redirect=" + encodeURIComponent(pushUrl);
   event.waitUntil(
     (async () => {
-      await debugStoreSet("lastClick", { data: event.notification.data, universalLink, clickedAt: new Date().toISOString() });
+      await debugStoreSet("lastClick", { data: event.notification.data, redirectUrl, clickedAt: new Date().toISOString() });
       const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       for (const client of allClients) {
         if ("focus" in client) {
           await client.focus();
         }
       }
-      await self.clients.openWindow(universalLink);
+      await self.clients.openWindow(redirectUrl);
     })()
   );
 });
