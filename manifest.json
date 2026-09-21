@@ -1,6 +1,6 @@
 {
-  "name": "HDE Push",
-  "short_name": "HDE Push",
+  "name": "HelpDeskEddy Notifications",
+  "short_name": "HelpDeskEddy",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
