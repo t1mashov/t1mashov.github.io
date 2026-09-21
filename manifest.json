@@ -1,6 +1,6 @@
 {
   "name": "HelpDeskEddy Notifications",
-  "short_name": "HelpDeskEddy",
+  "short_name": "HelpDeskEddy Notifications",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
