@@ -42,7 +42,16 @@
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
-  html { background: linear-gradient(to right, #2c9b75 0%, #23879a 100%) fixed; }
+  html { background-color: #2c9b75; }
+  /* Градиент на отдельном слое во весь экран: background-attachment: fixed на iOS не
+     работает, и внизу (под индикатором «Домой») оставалась белая полоса. */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0; right: 0; bottom: 0; left: 0;
+    z-index: -1;
+    background: linear-gradient(to right, #2c9b75 0%, #23879a 100%);
+  }
   body {
     font-family: "Helvetica Neue", Helvetica, -apple-system, "PingFang SC", Arial, sans-serif;
     color: var(--text);
