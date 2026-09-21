@@ -53,7 +53,12 @@
     position: fixed;
     top: 0; right: 0; bottom: 0; left: 0;
     z-index: -1;
-    background: linear-gradient(to right, #2c9b75 0%, #23879a 100%);
+    /* Нижний край плавно уходит в сплошной #23879a: в портрете iOS не растягивает
+       страницу под индикатор «Домой», и эту полосу закрашивает цвет фона html —
+       сплошной, а не градиентный. Так граница с ней не видна. */
+    background:
+      linear-gradient(to bottom, rgba(35, 135, 154, 0) 0, rgba(35, 135, 154, 0) calc(100% - 120px), #23879a 100%),
+      linear-gradient(to right, #2c9b75 0%, #23879a 100%);
   }
   body {
     font-family: "Helvetica Neue", Helvetica, -apple-system, "PingFang SC", Arial, sans-serif;
