@@ -115,6 +115,19 @@
   .btn:hover, .btn:active { background: var(--primary-light); border-color: var(--primary-light); }
   .btn:disabled { background: #a8d0da; border-color: #a8d0da; cursor: not-allowed; }
 
+  .enabled-msg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    border-radius: 4px;
+    background: #f0f9eb;
+    color: #67c23a;
+    font-size: 14px;
+  }
+  .enabled-msg svg { width: 16px; height: 16px; flex: none; }
+
   .banner {
     display: none;
     margin-bottom: 14px;
@@ -173,6 +186,10 @@
 
     <div id="banner" class="banner"></div>
     <button id="enableBtn" class="btn">Включить уведомления</button>
+    <div id="enabledMsg" class="enabled-msg" role="status" style="display: none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      Уведомления уже включены
+    </div>
     <div id="status" class="status" role="status"></div>
   </section>
 
@@ -201,6 +218,7 @@
   const statusEl = document.getElementById("status");
   const bannerEl = document.getElementById("banner");
   const btn = document.getElementById("enableBtn");
+  const enabledMsgEl = document.getElementById("enabledMsg");
 
   function log(text) {
     statusEl.textContent = text;
@@ -218,6 +236,12 @@
     bannerEl.style.display = "block";
     bannerEl.textContent = "Чтобы уведомления работали на iPhone — сначала добавьте эту страницу на экран «Домой» (кнопка «Поделиться» → «На экран Домой»), затем откройте её оттуда.";
     btn.disabled = true;
+  } else if (Notification.permission === "granted") {
+    // Разрешение уже выдано раньше — повторное нажатие ничего не сломает (getToken()
+    // просто вернёт тот же токен), но и смысла в нём нет, поэтому просто показываем
+    // текущее состояние вместо кнопки.
+    btn.style.display = "none";
+    enabledMsgEl.style.display = "flex";
   }
 
   btn.addEventListener("click", async () => {
