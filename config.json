@@ -1,7 +1,7 @@
 {
-  "apiKey": "",
-  "projectId": "",
-  "appId": "",
-  "messagingSenderId": "",
-  "vapidKey": ""
+  "apiKey": "AIzaSyA3MVD9ief0JprMRC3Atbd7dPt1gmH4SKU",
+  "projectId": "hdepush",
+  "appId": "1:647887531816:web:795292b474ff5e66a46a1d",
+  "messagingSenderId": "647887531816",
+  "vapidKey": "BONBi8yYV3zdUx8aWRh-gA-jFO8bTALBmg7DF0kNyci12-tZCggLvKe1RUxtifpkR137ULKaoqGtimK6qKrvEdE"
 }
