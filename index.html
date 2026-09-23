@@ -6,9 +6,9 @@
 <title>HelpDeskEddy Notifications</title>
 <meta name="apple-mobile-web-app-title" content="HelpDeskEddy Notifications" />
 <link rel="manifest" href="manifest.json" />
-<link rel="icon" href="favicon.ico" type="image/x-icon" />
-<link rel="icon" href="icon-192.png" type="image/png" sizes="192x192" />
-<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="icon" href="assets/favicon.ico" type="image/x-icon" />
+<link rel="icon" href="assets/icon-192.png" type="image/png" sizes="192x192" />
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#2c9b75" />
@@ -175,7 +175,7 @@
 <body>
 
 <main class="page">
-  <img class="logo" src="login-page-logo.svg" alt="HelpDeskEddy" />
+  <img class="logo" src="assets/login-page-logo.svg" alt="HelpDeskEddy" />
 
   <section class="card">
     <div class="card__header">
@@ -203,18 +203,8 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
   import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyA3MVD9ief0JprMRC3Atbd7dPt1gmH4SKU",
-    authDomain: "hdepush.firebaseapp.com",
-    projectId: "hdepush",
-    storageBucket: "hdepush.firebasestorage.app",
-    messagingSenderId: "647887531816",
-    appId: "1:647887531816:web:795292b474ff5e66a46a1d"
-  };
+  const REQUIRED_FIELDS = ["apiKey", "projectId", "appId", "messagingSenderId", "vapidKey"];
 
-  const VAPID_KEY = "BONBi8yYV3zdUx8aWRh-gA-jFO8bTALBmg7DF0kNyci12-tZCggLvKe1RUxtifpkR137ULKaoqGtimK6qKrvEdE";
-
-  const app = initializeApp(firebaseConfig);
   const statusEl = document.getElementById("status");
   const bannerEl = document.getElementById("banner");
   const btn = document.getElementById("enableBtn");
@@ -222,6 +212,12 @@
 
   function log(text) {
     statusEl.textContent = text;
+  }
+
+  function showBanner(text) {
+    bannerEl.style.display = "block";
+    bannerEl.textContent = text;
+    btn.disabled = true;
   }
 
   function isIos() {
@@ -232,50 +228,98 @@
     return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
   }
 
-  if (isIos() && !isStandalone()) {
-    bannerEl.style.display = "block";
-    bannerEl.textContent = "Чтобы уведомления работали на iPhone — сначала добавьте эту страницу на экран «Домой» (кнопка «Поделиться» → «На экран Домой»), затем откройте её оттуда.";
-    btn.disabled = true;
-  } else if (Notification.permission === "granted") {
-    // Разрешение уже выдано раньше — повторное нажатие ничего не сломает (getToken()
-    // просто вернёт тот же токен), но и смысла в нём нет, поэтому просто показываем
-    // текущее состояние вместо кнопки.
-    btn.style.display = "none";
-    enabledMsgEl.style.display = "flex";
+  async function loadConfig() {
+    // config.json лежит рядом с этой страницей и редактируется на сервере вручную —
+    // никакой сборки/установки не требуется. Значения в нём не секретны (это
+    // публичные Firebase Web-идентификаторы), поэтому отдавать файл как есть
+    // безопасно, но структуру и происхождение полей см. в README.md.
+    let cfg;
+    try {
+      const resp = await fetch("./config.json", { cache: "no-store" });
+      if (!resp.ok) {
+        throw new Error("HTTP " + resp.status);
+      }
+      cfg = await resp.json();
+    } catch (e) {
+      showBanner("Не удалось загрузить config.json: " + (e && e.message ? e.message : String(e)) + ". См. README.md.");
+      btn.style.display = "none";
+      return null;
+    }
+
+    const missing = REQUIRED_FIELDS.filter((key) => !cfg[key]);
+    if (missing.length > 0) {
+      showBanner("В config.json не заполнены поля: " + missing.join(", ") + ". Откуда их взять — см. README.md.");
+      btn.style.display = "none";
+      return null;
+    }
+
+    return cfg;
   }
 
-  btn.addEventListener("click", async () => {
-    try {
-      log("Запрашиваем разрешение...");
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        log("Разрешение не выдано: " + permission);
-        return;
-      }
-
-      log("Регистрируем service worker...");
-      const registration = await navigator.serviceWorker.register("firebase-messaging-sw.js");
-      await navigator.serviceWorker.ready;
-
-      log("Получаем токен...");
-      const messaging = getMessaging(app);
-      const token = await getToken(messaging, {
-        vapidKey: VAPID_KEY,
-        serviceWorkerRegistration: registration
-      });
-
-      if (!token) {
-        log("Токен не получен (пусто).");
-        return;
-      }
-
-      log("Токен получен, возвращаемся в приложение...");
-      window.location.href = "helpdeskeddy://webpush-token?value=" + encodeURIComponent(token);
-    } catch (e) {
-      log("Ошибка: " + (e && e.message ? e.message : String(e)));
-      console.error(e);
+  async function main() {
+    const cfg = await loadConfig();
+    if (!cfg) {
+      return;
     }
-  });
+
+    const firebaseConfig = {
+      apiKey: cfg.apiKey,
+      authDomain: cfg.authDomain || cfg.projectId + ".firebaseapp.com",
+      projectId: cfg.projectId,
+      messagingSenderId: String(cfg.messagingSenderId),
+      appId: cfg.appId
+    };
+    const VAPID_KEY = cfg.vapidKey;
+    const app = initializeApp(firebaseConfig);
+
+    if (isIos() && !isStandalone()) {
+      showBanner("Чтобы уведомления работали на iPhone — сначала добавьте эту страницу на экран «Домой» (кнопка «Поделиться» → «На экран Домой»), затем откройте её оттуда.");
+      return;
+    }
+
+    if (Notification.permission === "granted") {
+      // Разрешение уже выдано раньше — повторное нажатие ничего не сломает (getToken()
+      // просто вернёт тот же токен), но и смысла в нём нет, поэтому просто показываем
+      // текущее состояние вместо кнопки.
+      btn.style.display = "none";
+      enabledMsgEl.style.display = "flex";
+    }
+
+    btn.addEventListener("click", async () => {
+      try {
+        log("Запрашиваем разрешение...");
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          log("Разрешение не выдано: " + permission);
+          return;
+        }
+
+        log("Регистрируем service worker...");
+        const registration = await navigator.serviceWorker.register("firebase-messaging-sw.js");
+        await navigator.serviceWorker.ready;
+
+        log("Получаем токен...");
+        const messaging = getMessaging(app);
+        const token = await getToken(messaging, {
+          vapidKey: VAPID_KEY,
+          serviceWorkerRegistration: registration
+        });
+
+        if (!token) {
+          log("Токен не получен (пусто).");
+          return;
+        }
+
+        log("Токен получен, возвращаемся в приложение...");
+        window.location.href = "helpdeskeddy://webpush-token?value=" + encodeURIComponent(token);
+      } catch (e) {
+        log("Ошибка: " + (e && e.message ? e.message : String(e)));
+        console.error(e);
+      }
+    });
+  }
+
+  main();
 </script>
 </body>
 </html>
