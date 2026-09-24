@@ -21,6 +21,13 @@ self.addEventListener("push", (event) => {
   );
 });
 
+// Страница, открытая до первой активации воркера (сразу после «Включить уведомления»),
+// им не управляется, а client.navigate() работает только для управляемых страниц —
+// без claim() первый же клик по уведомлению откроет PWA, но не перекинет в приложение.
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const pushUrl = (event.notification.data && event.notification.data.pushUrl) || "/";
