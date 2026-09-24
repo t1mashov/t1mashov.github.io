@@ -13,14 +13,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#2c9b75" />
 <script>
-  // Клик по уведомлению открывает страницу с ?redirect=<путь>, и уже она уходит на helpdeskeddy:// — из service worker iOS не передаёт управление приложению.
+  // Клик по уведомлению открывает страницу с ?redirect=<путь>, и уже она уходит на helpdeskeddy:// (т.к. из service worker iOS не передаёт управление приложению.)
   (function () {
     // Передаёт управление приложению: открывает его по ссылке helpdeskeddy://open с путём тикета.
     function openApp(path) {
       window.location.href = "helpdeskeddy://open?path=" + encodeURIComponent(path);
     }
 
-    // Экран «Открытие приложения…» только при открытии по клику на уведомление; при уходе PWA в фон снимаем, иначе при ручном открытии останется спиннер.
+    // Экран "Открытие приложения..." только при открытии по клику на уведомление; при уходе PWA в фон снимаем, иначе при ручном открытии останется лоадер.
     function showOpening() {
       var root = document.documentElement;
       root.classList.add("redirecting");
@@ -80,7 +80,7 @@
     position: fixed;
     top: 0; right: 0; bottom: 0; left: 0;
     z-index: -1;
-    /* Низ плавно уходит в сплошной #23879a: в портрете iOS не растягивает страницу под индикатор «Домой», и эту полосу красит сплошной цвет html. */
+    /* Низ плавно уходит в сплошной #23879a: в портрете iOS не растягивает страницу под индикатор "Домой", и эту полосу красит сплошной цвет html. */
     background:
       linear-gradient(to bottom, rgba(35, 135, 154, 0) 0, rgba(35, 135, 154, 0) calc(100% - 120px), #23879a 100%),
       linear-gradient(to right, #2c9b75 0%, #23879a 100%);
@@ -221,7 +221,7 @@
 
   <div class="opening" role="status">
     <div class="spinner"></div>
-    <div class="opening__text">Открытие приложения…</div>
+    <div class="opening__text">Открытие приложения...</div>
   </div>
 </main>
 
@@ -250,12 +250,12 @@
     btn.disabled = true;
   }
 
-  // Определяет iPhone/iPad: ограничение с установкой на «Домой» действует только там.
+  // Определяет iPhone/iPad: ограничение с установкой на "Домой" действует только там.
   function isIos() {
     return /iphone|ipad|ipod/i.test(navigator.userAgent);
   }
 
-  // Страница запущена с экрана «Домой», а не из вкладки Safari.
+  // Страница запущена с экрана "Домой", а не из вкладки Safari.
   function isStandalone() {
     return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
   }
@@ -286,7 +286,7 @@
     return cfg;
   }
 
-  // Точка входа: конфиг → Firebase → проверка установки на «Домой» → состояние карточки и подписка.
+  // Точка входа: конфиг → Firebase → проверка установки на "Домой" → состояние карточки и подписка.
   async function main() {
     const cfg = await loadConfig();
     if (!cfg) {
@@ -304,13 +304,13 @@
     const VAPID_KEY = cfg.vapidKey;
     const app = initializeApp(firebaseConfig);
 
-    // На iPhone push работает только у страницы, установленной на «Домой», иначе просим установить и дальше не идём.
+    // На iPhone push работает только у страницы, установленной на "Домой", иначе просим установить и дальше не идём.
     if (isIos() && !isStandalone()) {
       showBanner("Чтобы уведомления работали на iPhone — сначала добавьте эту страницу на экран «Домой» (кнопка «Поделиться» → «На экран Домой»), затем откройте её оттуда.");
       return;
     }
 
-    // Карточка всегда показывает одно из двух: кнопку включения или «уже включены».
+    // Карточка всегда показывает одно из двух: кнопку включения или "уже включены".
     function updateState() {
       const enabled = Notification.permission === "granted";
       btn.style.display = enabled ? "none" : "";
@@ -326,7 +326,7 @@
       }
     });
 
-    // Просит разрешение (если не выдано), берёт токен и передаёт его в приложение; вызывается кнопкой и ссылкой «Обновить данные».
+    // Просит разрешение (если не выдано), берёт токен и передаёт его в приложение; вызывается кнопкой и ссылкой "Обновить данные".
     async function enableAndHandOff() {
       try {
         // Разрешение на уведомления: без него iOS не выдаёт токен.
@@ -365,7 +365,7 @@
       }
     }
 
-    // Кнопка и ссылка «Обновить данные» запускают один и тот же процесс.
+    // Кнопка и ссылка "Обновить данные» запускают один и тот же процесс.
     btn.addEventListener("click", enableAndHandOff);
     document.getElementById("resendLink").addEventListener("click", (event) => {
       event.preventDefault();

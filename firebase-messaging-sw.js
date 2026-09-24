@@ -26,6 +26,7 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const pushUrl = (event.notification.data && event.notification.data.pushUrl) || "/";
+
   // openWindow() на том же домене iOS считает навигацией внутри PWA, поэтому идём через свою страницу (?redirect=), которая уходит на helpdeskeddy://open.
   // self.registration.scope вместо хардкода домена — файл одинаков для любого клиента.
   const redirectUrl = new URL("?redirect=" + encodeURIComponent(pushUrl), self.registration.scope).href;
@@ -33,13 +34,17 @@ self.addEventListener("notificationclick", (event) => {
     (async () => {
       // Ищем уже открытое окно PWA.
       const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      
       // У standalone PWA одно окно: при открытом окне openWindow() ничего не делает, navigate() падает для неуправляемых страниц, а postMessage работает всегда.
       if (allClients.length > 0) {
+
         // Окно открыто: шлём ему путь сообщением и выводим на передний план.
         const client = allClients[0];
         client.postMessage({ pushUrl });
         await client.focus();
-      } else {
+      } 
+      else {
+
         // Окна нет: открываем страницу с ?redirect=, она сама уйдёт в приложение.
         await self.clients.openWindow(redirectUrl);
       }
