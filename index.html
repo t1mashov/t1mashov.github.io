@@ -19,6 +19,10 @@
   // управление приложению. Пока идёт переход, показываем только логотип и
   // спиннер (без карточки), чтобы не мигал интерфейс.
   (function () {
+    function openApp(path) {
+      window.location.href = "helpdeskeddy://open?path=" + encodeURIComponent(path);
+    }
+
     const redirect = new URLSearchParams(window.location.search).get("redirect");
     if (redirect) {
       document.documentElement.classList.add("redirecting");
@@ -26,10 +30,45 @@
       // обрывает разбор документа, и на долю секунды виден белый экран.
       document.addEventListener("DOMContentLoaded", function () {
         requestAnimationFrame(function () {
-          window.location.href = "helpdeskeddy://open?path=" + encodeURIComponent(redirect);
+          openApp(redirect);
         });
       });
     }
+
+    // Если PWA уже открыта, воркер не перезагружает её, а присылает путь сообщением
+    // (см. notificationclick в firebase-messaging-sw.js) — уходим в приложение отсюда.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", function (event) {
+        if (event.data && event.data.pushUrl) {
+          openApp(event.data.pushUrl);
+        }
+        if (event.data && event.data.swVersion) {
+          showVersion(event.data.swVersion);
+        }
+      });
+    }
+
+    // TEMP: отладочная строка с версиями страницы и установленного воркера, чтобы
+    // видеть, обновился ли GitHub Pages и подхватил ли телефон новый воркер. Убрать
+    // вместе с #version ниже и обработчиком "version" в firebase-messaging-sw.js.
+    var PAGE_VERSION = "2026-09-24 #1";
+    var swText = "не установлен";
+    function showVersion(sw) {
+      swText = sw;
+      render();
+    }
+    function render() {
+      var el = document.getElementById("version");
+      if (el) el.textContent = "стр. " + PAGE_VERSION + " · воркер " + swText;
+    }
+    document.addEventListener("DOMContentLoaded", function () {
+      render();
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistration().then(function (reg) {
+          if (reg && reg.active) reg.active.postMessage("version");
+        });
+      }
+    });
   })();
 </script>
 <style>
@@ -197,6 +236,8 @@
     <div class="spinner"></div>
     <div class="opening__text">Открытие приложения…</div>
   </div>
+
+  <div id="version" style="color: rgba(255, 255, 255, .8); font-size: 12px;"></div>
 </main>
 
 <script type="module">

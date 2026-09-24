@@ -21,11 +21,12 @@ self.addEventListener("push", (event) => {
   );
 });
 
-// Страница, открытая до первой активации воркера (сразу после «Включить уведомления»),
-// им не управляется, а client.navigate() работает только для управляемых страниц —
-// без claim() первый же клик по уведомлению откроет PWA, но не перекинет в приложение.
-self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+// TEMP: отладочная версия, показывается на странице — убрать вместе с обработчиком ниже.
+const SW_VERSION = "2026-09-24 #1";
+self.addEventListener("message", (event) => {
+  if (event.data === "version" && event.source) {
+    event.source.postMessage({ swVersion: SW_VERSION });
+  }
 });
 
 self.addEventListener("notificationclick", (event) => {
@@ -39,13 +40,13 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(
     (async () => {
       const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-      // iOS допускает только одно окно standalone PWA: если оно уже открыто, простой
-      // openWindow() с новым URL ничего не делает — нужен явный navigate().
+      // iOS допускает только одно окно standalone PWA: если оно уже открыто, openWindow()
+      // с новым URL ничего не делает. navigate() тоже не годится — он падает для страниц,
+      // которыми воркер не управляет (например, открытой сразу после включения
+      // уведомлений). postMessage работает для любой открытой страницы.
       if (allClients.length > 0) {
         const client = allClients[0];
-        if ("navigate" in client) {
-          await client.navigate(redirectUrl);
-        }
+        client.postMessage({ pushUrl });
         await client.focus();
       } else {
         await self.clients.openWindow(redirectUrl);
