@@ -13,19 +13,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#2c9b75" />
 <script>
-  // Клик по пуш-уведомлению открывает эту страницу с ?redirect=<путь> (см.
-  // firebase-messaging-sw.js). Тут же, из реально загруженной страницы (а не из
-  // service worker), уходим на кастомную схему — так iOS надёжно передаёт
-  // управление приложению. Пока идёт переход, показываем только логотип и
-  // спиннер (без карточки), чтобы не мигал интерфейс.
+  // Клик по уведомлению открывает страницу с ?redirect=<путь>, и уже она уходит на helpdeskeddy:// — из service worker iOS не передаёт управление приложению.
   (function () {
+    // Передаёт управление приложению: открывает его по ссылке helpdeskeddy://open с путём тикета.
     function openApp(path) {
       window.location.href = "helpdeskeddy://open?path=" + encodeURIComponent(path);
     }
 
-    // Экран «Открытие приложения…» показываем только при открытии по клику на
-    // уведомление. Когда PWA уходит в фон, снимаем его — иначе при следующем
-    // ручном открытии останется спиннер вместо карточки.
+    // Экран «Открытие приложения…» только при открытии по клику на уведомление; при уходе PWA в фон снимаем, иначе при ручном открытии останется спиннер.
     function showOpening() {
       var root = document.documentElement;
       root.classList.add("redirecting");
@@ -38,14 +33,13 @@
       document.addEventListener("visibilitychange", reset);
     }
 
+    // Страницу открыл воркер (PWA была закрыта): путь тикета лежит в ?redirect=.
     const redirect = new URLSearchParams(window.location.search).get("redirect");
     if (redirect) {
       showOpening();
-      // Убираем ?redirect= из адреса, чтобы повторная загрузка страницы не увела в
-      // приложение снова.
+      // Убираем ?redirect= из адреса, чтобы повторная загрузка не увела в приложение снова.
       history.replaceState(null, "", window.location.pathname);
-      // Переходим только когда страница уже отрисована: редирект прямо из <head>
-      // обрывает разбор документа, и на долю секунды виден белый экран.
+      // Ждём отрисовки: редирект прямо из <head> обрывает разбор документа и даёт белый экран.
       document.addEventListener("DOMContentLoaded", function () {
         requestAnimationFrame(function () {
           openApp(redirect);
@@ -53,8 +47,7 @@
       });
     }
 
-    // Если PWA уже открыта, воркер не перезагружает её, а присылает путь сообщением
-    // (см. notificationclick в firebase-messaging-sw.js) — уходим в приложение отсюда.
+    // Открытую PWA воркер не перезагружает, а присылает путь сообщением — уходим в приложение отсюда.
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("message", function (event) {
         if (event.data && event.data.pushUrl) {
@@ -63,33 +56,8 @@
             openApp(event.data.pushUrl);
           });
         }
-        if (event.data && event.data.swVersion) {
-          showVersion(event.data.swVersion);
-        }
       });
     }
-
-    // TEMP: отладочная строка с версиями страницы и установленного воркера, чтобы
-    // видеть, обновился ли GitHub Pages и подхватил ли телефон новый воркер. Убрать
-    // вместе с #version ниже и обработчиком "version" в firebase-messaging-sw.js.
-    var PAGE_VERSION = "2026-09-24 #4";
-    var swText = "не установлен";
-    function showVersion(sw) {
-      swText = sw;
-      render();
-    }
-    function render() {
-      var el = document.getElementById("version");
-      if (el) el.textContent = "стр. " + PAGE_VERSION + " · воркер " + swText;
-    }
-    document.addEventListener("DOMContentLoaded", function () {
-      render();
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.getRegistration().then(function (reg) {
-          if (reg && reg.active) reg.active.postMessage("version");
-        });
-      }
-    });
   })();
 </script>
 <style>
@@ -106,16 +74,13 @@
     background-color: #23879a;
     background-image: linear-gradient(to right, #2c9b75 0%, #23879a 100%);
   }
-  /* Градиент на отдельном слое во весь экран: background-attachment: fixed на iOS не
-     работает, и внизу (под индикатором «Домой») оставалась белая полоса. */
+  /* Градиент отдельным слоем: background-attachment: fixed на iOS не работает, и внизу оставалась белая полоса. */
   body::before {
     content: "";
     position: fixed;
     top: 0; right: 0; bottom: 0; left: 0;
     z-index: -1;
-    /* Нижний край плавно уходит в сплошной #23879a: в портрете iOS не растягивает
-       страницу под индикатор «Домой», и эту полосу закрашивает цвет фона html —
-       сплошной, а не градиентный. Так граница с ней не видна. */
+    /* Низ плавно уходит в сплошной #23879a: в портрете iOS не растягивает страницу под индикатор «Домой», и эту полосу красит сплошной цвет html. */
     background:
       linear-gradient(to bottom, rgba(35, 135, 154, 0) 0, rgba(35, 135, 154, 0) calc(100% - 120px), #23879a 100%),
       linear-gradient(to right, #2c9b75 0%, #23879a 100%);
@@ -250,7 +215,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       Уведомления уже включены
     </div>
-    <a id="resendLink" href="#" style="display: none; margin-top: 12px; text-align: center; font-size: 12px; color: var(--primary);">Передать токен приложению заново</a>
+    <a id="resendLink" href="#" style="display: none; margin-top: 12px; text-align: center; font-size: 12px; color: var(--primary);">Обновить данные</a>
     <div id="status" class="status" role="status"></div>
   </section>
 
@@ -258,14 +223,13 @@
     <div class="spinner"></div>
     <div class="opening__text">Открытие приложения…</div>
   </div>
-
-  <div id="version" style="color: rgba(255, 255, 255, .8); font-size: 12px;"></div>
 </main>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
   import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging.js";
 
+  // Поля Firebase-проекта, без которых токен не получить.
   const REQUIRED_FIELDS = ["apiKey", "projectId", "appId", "messagingSenderId", "vapidKey"];
 
   const statusEl = document.getElementById("status");
@@ -274,29 +238,31 @@
   const enabledMsgEl = document.getElementById("enabledMsg");
   const resendEl = document.getElementById("resendLink");
 
+  // Показывает текущий шаг под кнопкой.
   function log(text) {
     statusEl.textContent = text;
   }
 
+  // Показывает предупреждение и блокирует кнопку.
   function showBanner(text) {
     bannerEl.style.display = "block";
     bannerEl.textContent = text;
     btn.disabled = true;
   }
 
+  // Определяет iPhone/iPad: ограничение с установкой на «Домой» действует только там.
   function isIos() {
     return /iphone|ipad|ipod/i.test(navigator.userAgent);
   }
 
+  // Страница запущена с экрана «Домой», а не из вкладки Safari.
   function isStandalone() {
     return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
   }
 
+  // Читает config.json и проверяет поля Firebase; без них токен получить нельзя, поэтому иначе показываем ошибку.
   async function loadConfig() {
-    // config.json лежит рядом с этой страницей и редактируется на сервере вручную —
-    // никакой сборки/установки не требуется. Значения в нём не секретны (это
-    // публичные Firebase Web-идентификаторы), поэтому отдавать файл как есть
-    // безопасно, но структуру и происхождение полей см. в README.md.
+    // config.json лежит рядом со страницей и правится вручную; значения не секретны (публичные Firebase Web-идентификаторы)
     let cfg;
     try {
       const resp = await fetch("./config.json", { cache: "no-store" });
@@ -320,12 +286,14 @@
     return cfg;
   }
 
+  // Точка входа: конфиг → Firebase → проверка установки на «Домой» → состояние карточки и подписка.
   async function main() {
     const cfg = await loadConfig();
     if (!cfg) {
       return;
     }
 
+    // Инициализируем Firebase проектом клиента: токен должен быть выдан тем же проектом, через который HDE шлёт push.
     const firebaseConfig = {
       apiKey: cfg.apiKey,
       authDomain: cfg.authDomain || cfg.projectId + ".firebaseapp.com",
@@ -336,6 +304,7 @@
     const VAPID_KEY = cfg.vapidKey;
     const app = initializeApp(firebaseConfig);
 
+    // На iPhone push работает только у страницы, установленной на «Домой», иначе просим установить и дальше не идём.
     if (isIos() && !isStandalone()) {
       showBanner("Чтобы уведомления работали на iPhone — сначала добавьте эту страницу на экран «Домой» (кнопка «Поделиться» → «На экран Домой»), затем откройте её оттуда.");
       return;
@@ -349,8 +318,7 @@
       resendEl.style.display = enabled ? "block" : "none";
     }
     updateState();
-    // PWA остаётся открытой в фоне, поэтому состояние (и остаток статуса после
-    // включения) обновляем при каждом возвращении на страницу.
+    // PWA живёт в фоне, поэтому состояние и статус обновляем при каждом возвращении на страницу.
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
         log("");
@@ -358,10 +326,10 @@
       }
     });
 
-    // Запрашивает разрешение (если ещё не выдано), берёт токен и передаёт его в приложение.
-    // Вызывается кнопкой включения и ссылкой «передать токен заново».
+    // Просит разрешение (если не выдано), берёт токен и передаёт его в приложение; вызывается кнопкой и ссылкой «Обновить данные».
     async function enableAndHandOff() {
       try {
+        // Разрешение на уведомления: без него iOS не выдаёт токен.
         log("Запрашиваем разрешение...");
         const permission = await Notification.requestPermission();
         if (permission !== "granted") {
@@ -369,10 +337,12 @@
           return;
         }
 
+        // Регистрируем воркер, который будет принимать push, и ждём его активации.
         log("Регистрируем service worker...");
         const registration = await navigator.serviceWorker.register("firebase-messaging-sw.js");
         await navigator.serviceWorker.ready;
 
+        // Просим у Firebase токен для этого устройства; воркер нужен, чтобы токен был привязан к его push-подписке.
         log("Получаем токен...");
         const messaging = getMessaging(app);
         const token = await getToken(messaging, {
@@ -385,6 +355,7 @@
           return;
         }
 
+        // Передаём токен приложению по ссылке helpdeskeddy://webpush-token: оно отправит его в HDE.
         log("");
         updateState();
         window.location.href = "helpdeskeddy://webpush-token?value=" + encodeURIComponent(token);
@@ -394,6 +365,7 @@
       }
     }
 
+    // Кнопка и ссылка «Обновить данные» запускают один и тот же процесс.
     btn.addEventListener("click", enableAndHandOff);
     document.getElementById("resendLink").addEventListener("click", (event) => {
       event.preventDefault();
