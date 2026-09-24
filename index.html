@@ -23,9 +23,27 @@
       window.location.href = "helpdeskeddy://open?path=" + encodeURIComponent(path);
     }
 
+    // Экран «Открытие приложения…» показываем только при открытии по клику на
+    // уведомление. Когда PWA уходит в фон, снимаем его — иначе при следующем
+    // ручном открытии останется спиннер вместо карточки.
+    function showOpening() {
+      var root = document.documentElement;
+      root.classList.add("redirecting");
+      function reset() {
+        if (document.visibilityState === "hidden") {
+          root.classList.remove("redirecting");
+          document.removeEventListener("visibilitychange", reset);
+        }
+      }
+      document.addEventListener("visibilitychange", reset);
+    }
+
     const redirect = new URLSearchParams(window.location.search).get("redirect");
     if (redirect) {
-      document.documentElement.classList.add("redirecting");
+      showOpening();
+      // Убираем ?redirect= из адреса, чтобы повторная загрузка страницы не увела в
+      // приложение снова.
+      history.replaceState(null, "", window.location.pathname);
       // Переходим только когда страница уже отрисована: редирект прямо из <head>
       // обрывает разбор документа, и на долю секунды виден белый экран.
       document.addEventListener("DOMContentLoaded", function () {
@@ -37,20 +55,6 @@
 
     // Если PWA уже открыта, воркер не перезагружает её, а присылает путь сообщением
     // (см. notificationclick в firebase-messaging-sw.js) — уходим в приложение отсюда.
-    function showOpening() {
-      var root = document.documentElement;
-      root.classList.add("redirecting");
-      // Вернуть обычный вид, когда PWA уйдёт в фон, иначе при следующем открытии
-      // останется спиннер.
-      function reset() {
-        if (document.visibilityState === "hidden") {
-          root.classList.remove("redirecting");
-          document.removeEventListener("visibilitychange", reset);
-        }
-      }
-      document.addEventListener("visibilitychange", reset);
-    }
-
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("message", function (event) {
         if (event.data && event.data.pushUrl) {
@@ -68,7 +72,7 @@
     // TEMP: отладочная строка с версиями страницы и установленного воркера, чтобы
     // видеть, обновился ли GitHub Pages и подхватил ли телефон новый воркер. Убрать
     // вместе с #version ниже и обработчиком "version" в firebase-messaging-sw.js.
-    var PAGE_VERSION = "2026-09-24 #2";
+    var PAGE_VERSION = "2026-09-24 #3";
     var swText = "не установлен";
     function showVersion(sw) {
       swText = sw;
@@ -335,13 +339,21 @@
       return;
     }
 
-    if (Notification.permission === "granted") {
-      // Разрешение уже выдано раньше — повторное нажатие ничего не сломает (getToken()
-      // просто вернёт тот же токен), но и смысла в нём нет, поэтому просто показываем
-      // текущее состояние вместо кнопки.
-      btn.style.display = "none";
-      enabledMsgEl.style.display = "flex";
+    // Карточка всегда показывает одно из двух: кнопку включения или «уже включены».
+    function updateState() {
+      const enabled = Notification.permission === "granted";
+      btn.style.display = enabled ? "none" : "";
+      enabledMsgEl.style.display = enabled ? "flex" : "none";
     }
+    updateState();
+    // PWA остаётся открытой в фоне, поэтому состояние (и остаток статуса после
+    // включения) обновляем при каждом возвращении на страницу.
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        log("");
+        updateState();
+      }
+    });
 
     btn.addEventListener("click", async () => {
       try {
@@ -368,7 +380,8 @@
           return;
         }
 
-        log("Токен получен, возвращаемся в приложение...");
+        log("");
+        updateState();
         window.location.href = "helpdeskeddy://webpush-token?value=" + encodeURIComponent(token);
       } catch (e) {
         log("Ошибка: " + (e && e.message ? e.message : String(e)));
