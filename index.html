@@ -37,10 +37,27 @@
 
     // Если PWA уже открыта, воркер не перезагружает её, а присылает путь сообщением
     // (см. notificationclick в firebase-messaging-sw.js) — уходим в приложение отсюда.
+    function showOpening() {
+      var root = document.documentElement;
+      root.classList.add("redirecting");
+      // Вернуть обычный вид, когда PWA уйдёт в фон, иначе при следующем открытии
+      // останется спиннер.
+      function reset() {
+        if (document.visibilityState === "hidden") {
+          root.classList.remove("redirecting");
+          document.removeEventListener("visibilitychange", reset);
+        }
+      }
+      document.addEventListener("visibilitychange", reset);
+    }
+
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("message", function (event) {
         if (event.data && event.data.pushUrl) {
-          openApp(event.data.pushUrl);
+          showOpening();
+          requestAnimationFrame(function () {
+            openApp(event.data.pushUrl);
+          });
         }
         if (event.data && event.data.swVersion) {
           showVersion(event.data.swVersion);
@@ -51,7 +68,7 @@
     // TEMP: отладочная строка с версиями страницы и установленного воркера, чтобы
     // видеть, обновился ли GitHub Pages и подхватил ли телефон новый воркер. Убрать
     // вместе с #version ниже и обработчиком "version" в firebase-messaging-sw.js.
-    var PAGE_VERSION = "2026-09-24 #1";
+    var PAGE_VERSION = "2026-09-24 #2";
     var swText = "не установлен";
     function showVersion(sw) {
       swText = sw;
