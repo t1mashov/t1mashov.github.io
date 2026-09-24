@@ -72,7 +72,7 @@
     // TEMP: отладочная строка с версиями страницы и установленного воркера, чтобы
     // видеть, обновился ли GitHub Pages и подхватил ли телефон новый воркер. Убрать
     // вместе с #version ниже и обработчиком "version" в firebase-messaging-sw.js.
-    var PAGE_VERSION = "2026-09-24 #3";
+    var PAGE_VERSION = "2026-09-24 #4";
     var swText = "не установлен";
     function showVersion(sw) {
       swText = sw;
@@ -250,6 +250,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       Уведомления уже включены
     </div>
+    <a id="resendLink" href="#" style="display: none; margin-top: 12px; text-align: center; font-size: 12px; color: var(--primary);">Передать токен приложению заново</a>
     <div id="status" class="status" role="status"></div>
   </section>
 
@@ -271,6 +272,7 @@
   const bannerEl = document.getElementById("banner");
   const btn = document.getElementById("enableBtn");
   const enabledMsgEl = document.getElementById("enabledMsg");
+  const resendEl = document.getElementById("resendLink");
 
   function log(text) {
     statusEl.textContent = text;
@@ -344,6 +346,7 @@
       const enabled = Notification.permission === "granted";
       btn.style.display = enabled ? "none" : "";
       enabledMsgEl.style.display = enabled ? "flex" : "none";
+      resendEl.style.display = enabled ? "block" : "none";
     }
     updateState();
     // PWA остаётся открытой в фоне, поэтому состояние (и остаток статуса после
@@ -355,7 +358,9 @@
       }
     });
 
-    btn.addEventListener("click", async () => {
+    // Запрашивает разрешение (если ещё не выдано), берёт токен и передаёт его в приложение.
+    // Вызывается кнопкой включения и ссылкой «передать токен заново».
+    async function enableAndHandOff() {
       try {
         log("Запрашиваем разрешение...");
         const permission = await Notification.requestPermission();
@@ -387,6 +392,12 @@
         log("Ошибка: " + (e && e.message ? e.message : String(e)));
         console.error(e);
       }
+    }
+
+    btn.addEventListener("click", enableAndHandOff);
+    document.getElementById("resendLink").addEventListener("click", (event) => {
+      event.preventDefault();
+      enableAndHandOff();
     });
   }
 
