@@ -1,7 +1,7 @@
 {
-  "apiKey": "AIzaSyA3MVD9ief0JprMRC3Atbd7dPt1gmH4SKU",
-  "projectId": "hdepush",
-  "appId": "1:647887531816:web:795292b474ff5e66a46a1d",
-  "messagingSenderId": "647887531816",
-  "vapidKey": "BONBi8yYV3zdUx8aWRh-gA-jFO8bTALBmg7DF0kNyci12-tZCggLvKe1RUxtifpkR137ULKaoqGtimK6qKrvEdE"
+  "apiKey": "AIzaSyCg_SZ_B58xEb5w8Mo9YW_xbjdCVQNj2lk",
+  "projectId": "tomass-daodesk-push",
+  "appId": "1:421373363841:web:b4809565b9dc545b59ef80",
+  "messagingSenderId": "421373363841",
+  "vapidKey": "BI1C3Jrtg57EuDmrYRBPEKnGpMPsI_SBEYyudjLD1wTqHLBwoi5C03013IrgVcxKSrNyXW3J9pU6p3SNObfabN8"
 }
