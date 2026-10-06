@@ -271,14 +271,14 @@
       }
       cfg = await resp.json();
     } catch (e) {
-      showBanner("Не удалось загрузить config.json: " + (e && e.message ? e.message : String(e)) + ". См. README.md.");
+      showBanner("Не удалось загрузить config.json: " + (e && e.message ? e.message : String(e)) + ". Проверьте файл по документации по настройке push-уведомлений.");
       btn.style.display = "none";
       return null;
     }
 
     const missing = REQUIRED_FIELDS.filter((key) => !cfg[key]);
     if (missing.length > 0) {
-      showBanner("В config.json не заполнены поля: " + missing.join(", ") + ". Откуда их взять — см. README.md.");
+      showBanner("В config.json не заполнены поля: " + missing.join(", ") + ". Откуда их взять — см. документацию по настройке push-уведомлений.");
       btn.style.display = "none";
       return null;
     }
@@ -365,7 +365,7 @@
       }
     }
 
-    // Кнопка и ссылка "Обновить данные» запускают один и тот же процесс.
+    // Кнопка и ссылка «Обновить данные» запускают один и тот же процесс.
     btn.addEventListener("click", enableAndHandOff);
     document.getElementById("resendLink").addEventListener("click", (event) => {
       event.preventDefault();
